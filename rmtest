@@ -1,0 +1,38 @@
+const { assert } = require('chai');
+const RoleManagement = artifacts.require("RoleManagement");
+
+contract("RoleManagement", (accounts) => {
+  let roleManagement;
+  const [admin, user] = accounts;
+
+  beforeEach(async () => {
+    roleManagement = await RoleManagement.new([admin]);
+  });
+
+  it("should assign an admin role", async () => {
+    const isAdmin = await roleManagement.isAdmin(admin);
+    assert.isTrue(isAdmin, "Admin should be correctly assigned");
+  });
+
+  it("should assign a user role", async () => {
+    await roleManagement.addUser(user);
+
+    const isUser = await roleManagement.isUser(user);
+    assert.isTrue(isUser, "User should be correctly assigned");
+  });
+
+  it("should not allow non-admin to assign roles", async () => {
+    try {
+      // Attempt to add an admin role by a non-admin user
+      await roleManagement.addAdmin(user, { from: user });
+      assert.fail("Non-admin should not be able to assign admin role");
+    } catch (error) {
+      // Assert that the error message contains 'AccessControl: account is missing role'
+      assert.include(error.message, "AccessControl: account", "Error message should indicate missing role");
+      
+      // Optionally, check that the user did not receive the admin role
+      const isAdmin = await roleManagement.isAdmin(user);
+      assert.isFalse(isAdmin, "Non-admin should not have the admin role");
+    }
+  });
+});
